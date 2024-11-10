@@ -29,17 +29,22 @@ for column in categorical_columns:
 # Select only numeric columns (to calculate correlation matrix)
 numeric_data = data.select_dtypes(include=['number'])
 
-# Calculate the correlation matrix for numeric columns (now including label encoded columns)
+# Calculate the correlation matrix for numeric columns (now including label-encoded columns)
 corr_matrix = numeric_data.corr()
 
 # Plotting the heatmap
-plt.figure(figsize=(12, 8))
+plt.figure(figsize=(14, 10))  # Increase the figure size
 sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', fmt=".2f", linewidths=0.5, cbar_kws={'shrink': 0.8})
 
 # Customize the plot with titles and axis labels
 plt.title('Correlation Heatmap of Features with Label Encoding', fontsize=16)
-plt.xlabel('Features', fontsize=12)
-plt.ylabel('Features', fontsize=12)
+
+# Rotate and adjust labels
+plt.xticks(rotation=45, ha='right', fontsize=10)  # Rotate x-axis labels
+plt.yticks(rotation=0, fontsize=10)  # Keep y-axis labels horizontal
+
+# Add padding and layout adjustments
+plt.tight_layout(pad=2.0)  # Add padding around the plot
 
 # Show the plot
 plt.show()
@@ -59,13 +64,15 @@ X_scaled = scaler.fit_transform(X)
 # Add intercept term (for the bias term in linear regression)
 X_intercept = np.c_[np.ones(X_scaled.shape[0]), X_scaled]
 
-# Initialize parameters for Adam
-alpha_values = [0.001, 0.01, 0.05]
-iterations = 2000
+# Initialize parameters and find optimal Alpha
+alpha_values = [0.001, 0.01]
+iterations = 1000
 theta_initial = np.zeros(X_intercept.shape[1])
-convergence_threshold = 1e-6  # Convergence threshold to stop early if cost stops changing
 
 # Hypothesis and cost function definitions for Adam
+convergence_threshold = 1e-6  # Convergence threshold to stop early if cost stops changing
+
+# Hypothesis and cost function definitions
 def hypothesis(X, theta):
     return X @ theta
 
@@ -74,44 +81,38 @@ def compute_cost(X, y, theta):
     predictions = hypothesis(X, theta)
     return (1 / (2 * m)) * np.sum((predictions - y) ** 2)
 
-# Adam Implementation
-def adam(X, y, theta, alpha, iterations, epsilon=1e-8, beta1=0.9, beta2=0.999):
+# Gradient Descent Implementation
+def gradient_descent(X, y, theta, alpha, iterations):
     m = len(y)
     cost_history = []
-    m_t = np.zeros_like(theta)  # Initialize 1st moment estimate (mean of gradients)
-    v_t = np.zeros_like(theta)  # Initialize 2nd moment estimate (variance of gradients)
-    t = 0  # Time step
     
     for i in range(iterations):
-        t += 1
         predictions = hypothesis(X, theta)
         error = predictions - y
         gradient = (1 / m) * np.dot(X.T, error)
         
-        # Update biased first and second moment estimates
-        m_t = beta1 * m_t + (1 - beta1) * gradient
-        v_t = beta2 * v_t + (1 - beta2) * gradient ** 2
-        
-        # Correct bias in estimates
-        m_hat = m_t / (1 - beta1 ** t)
-        v_hat = v_t / (1 - beta2 ** t)
-        
         # Update parameters
-        theta -= (alpha / (np.sqrt(v_hat) + epsilon)) * m_hat
+        theta -= alpha * gradient
         
+        # Compute and store cost for current iteration
         cost = compute_cost(X, y, theta)
         cost_history.append(cost)
         
+        # Early stopping based on convergence threshold
+        if i > 0 and abs(cost_history[i] - cost_history[i-1]) < convergence_threshold:
+            print(f"Converged at iteration {i}")
+            break
+    
     return theta, cost_history
 
-# Test Adam for different learning rates and store cost histories
+# Test Gradient Descent for different learning rates and store cost histories
 cost_histories = {}
 optimal_costs = {}
 optimal_iterations = {}
 
 for alpha in alpha_values:
     theta = theta_initial.copy()
-    theta_final, cost_history = adam(X_intercept, y.to_numpy(), theta, alpha, iterations)
+    theta_final, cost_history = gradient_descent(X_intercept, y.to_numpy(), theta, alpha, iterations)
     cost_histories[alpha] = cost_history
     min_cost = min(cost_history)
     min_iteration = cost_history.index(min_cost)
@@ -134,18 +135,21 @@ for alpha in alpha_values:
              fontsize=12, color='red', ha='center', va='bottom')
 
 # Plot settings
-plt.title('Cost History for Adam Optimizer with Different Learning Rates')
+plt.title('Cost History for Gradient Descent with Different Learning Rates')
 plt.xlabel('Iteration')
 plt.ylabel('Cost (MSE)')
 plt.legend()
 plt.grid(True)
 plt.show()
 
-# Assign the best alpha (lowest cost) and optimal iteration
+# Display the best alpha (lowest cost) and optimal iteration
 best_alpha = min(optimal_costs, key=optimal_costs.get)
 best_iteration = optimal_iterations[best_alpha]
 best_cost = optimal_costs[best_alpha]
 
+
+print(f"Best Learning Rate (Alpha): {best_alpha}")
+print(f"Optimal Iteration: {best_iteration} with Minimum Cost: {best_cost}")
 
 # -------------------- PART 3: Linear Regression with SKLearn --------------------
 

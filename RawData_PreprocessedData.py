@@ -17,32 +17,37 @@ data = data.fillna(data.mean())
 scaler = StandardScaler()
 
 # List of numerical columns to scale
-numerical_cols = ['Life Ladder', 'Log GDP Per Capita', 'Social Support', 'Healthy Life Expectancy At Birth', 
-                  'Freedom To Make Life Choices', 'Generosity', 'Perceptions Of Corruption', 
-                  'Positive Affect', 'Negative Affect', 'Confidence In National Government']
+numerical_cols = [
+    'Life Ladder', 'Log GDP Per Capita', 'Social Support', 
+    'Healthy Life Expectancy At Birth', 'Freedom To Make Life Choices', 
+    'Generosity', 'Perceptions Of Corruption', 'Positive Affect', 
+    'Negative Affect', 'Confidence In National Government'
+]
 
-# Copy the data and apply scaling
+# Apply scaling
 data_scaled = data.copy()
 data_scaled[numerical_cols] = scaler.fit_transform(data[numerical_cols])
 
-# Plotting box plots for each numerical column before and after scaling
-for col in numerical_cols:
-    plt.figure(figsize=(12, 6))
+# Plotting scaled box plots with 3 columns per figure
+num_plots = len(numerical_cols)
+plots_per_fig = 3
+num_figures = (num_plots + plots_per_fig - 1) // plots_per_fig  # Calculate the number of figures needed
+
+for fig_num in range(num_figures):
+    plt.figure(figsize=(18, 6))  # Adjust figure size for three plots side-by-side
+    for i in range(plots_per_fig):
+        col_idx = fig_num * plots_per_fig + i
+        if col_idx >= num_plots:
+            break
+        col = numerical_cols[col_idx]
+        
+        # Boxplot for scaled data only
+        plt.subplot(1, plots_per_fig, i + 1)
+        sns.boxplot(data=data_scaled[col], color='red')
+        plt.title(f'{col} - Scaled Data')
+        plt.xlabel(col)
+        plt.ylabel('Value')
     
-    # Before scaling - Boxplot
-    plt.subplot(1, 2, 1)
-    sns.boxplot(data=data[col], color='blue')
-    plt.title(f'{col} - Raw Data Boxplot')
-    plt.xlabel(col)
-    plt.ylabel('Value')
-    
-    # After scaling - Boxplot
-    plt.subplot(1, 2, 2)
-    sns.boxplot(data=data_scaled[col], color='red')
-    plt.title(f'{col} - Scaled Data Boxplot')
-    plt.xlabel(col)
-    plt.ylabel('Value')
-    
-    # Adjust layout and show
+    # Adjust layout and display
     plt.tight_layout()
     plt.show()

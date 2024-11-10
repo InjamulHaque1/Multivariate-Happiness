@@ -39,44 +39,38 @@ def compute_cost(X, y, theta):
     predictions = hypothesis(X, theta)
     return (1 / (2 * m)) * np.sum((predictions - y) ** 2)
 
-# Adam Implementation
-def adam(X, y, theta, alpha, iterations, epsilon=1e-8, beta1=0.9, beta2=0.999):
+# Gradient Descent Implementation
+def gradient_descent(X, y, theta, alpha, iterations):
     m = len(y)
     cost_history = []
-    m_t = np.zeros_like(theta)  # Initialize 1st moment estimate (mean of gradients)
-    v_t = np.zeros_like(theta)  # Initialize 2nd moment estimate (variance of gradients)
-    t = 0  # Time step
     
     for i in range(iterations):
-        t += 1
         predictions = hypothesis(X, theta)
         error = predictions - y
         gradient = (1 / m) * np.dot(X.T, error)
         
-        # Update biased first and second moment estimates
-        m_t = beta1 * m_t + (1 - beta1) * gradient
-        v_t = beta2 * v_t + (1 - beta2) * gradient ** 2
-        
-        # Correct bias in estimates
-        m_hat = m_t / (1 - beta1 ** t)
-        v_hat = v_t / (1 - beta2 ** t)
-        
         # Update parameters
-        theta -= (alpha / (np.sqrt(v_hat) + epsilon)) * m_hat
+        theta -= alpha * gradient
         
+        # Compute and store cost for current iteration
         cost = compute_cost(X, y, theta)
         cost_history.append(cost)
         
+        # Early stopping based on convergence threshold
+        if i > 0 and abs(cost_history[i] - cost_history[i-1]) < convergence_threshold:
+            print(f"Converged at iteration {i}")
+            break
+    
     return theta, cost_history
 
-# Test Adam for different learning rates and store cost histories
+# Test Gradient Descent for different learning rates and store cost histories
 cost_histories = {}
 optimal_costs = {}
 optimal_iterations = {}
 
 for alpha in alpha_values:
     theta = theta_initial.copy()
-    theta_final, cost_history = adam(X_intercept, y.to_numpy(), theta, alpha, iterations)
+    theta_final, cost_history = gradient_descent(X_intercept, y.to_numpy(), theta, alpha, iterations)
     cost_histories[alpha] = cost_history
     min_cost = min(cost_history)
     min_iteration = cost_history.index(min_cost)
@@ -99,7 +93,7 @@ for alpha in alpha_values:
              fontsize=12, color='red', ha='center', va='bottom')
 
 # Plot settings
-plt.title('Cost History for Adam Optimizer with Different Learning Rates')
+plt.title('Cost History for Gradient Descent with Different Learning Rates')
 plt.xlabel('Iteration')
 plt.ylabel('Cost (MSE)')
 plt.legend()
